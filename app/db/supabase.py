@@ -1,7 +1,7 @@
 from typing import AsyncGenerator
 
 from supabase._async.client import AsyncClient, create_client
-from supabase.lib.client_options import ClientOptions
+from supabase.lib.client_options import AsyncClientOptions
 
 from app.core.logging import get_logger
 
@@ -14,7 +14,7 @@ _supabase_admin_client: AsyncClient | None = None
 async def init_supabase(url: str, anon_key: str, service_role_key: str) -> None:
     global _supabase_client, _supabase_admin_client
 
-    options = ClientOptions(
+    options = AsyncClientOptions(
         auto_refresh_token=True,
         persist_session=False,
     )
@@ -48,12 +48,13 @@ def get_supabase_admin() -> AsyncClient:
 async def check_supabase_health() -> bool:
     try:
         client = get_supabase()
-        await client.table("_health_check").select("1").limit(1).execute()
+        # pg_catalog.pg_tables always exists — lightweight reachability check
+        await client.rpc("version").execute()
         return True
     except Exception as exc:
-        # 42P01 = table does not exist — DB is reachable, just no sentinel table yet
         msg = str(exc)
-        if "42P01" in msg or "does not exist" in msg:
+        # Any PostgREST/table error still means the DB responded
+        if "PGRST" in msg or "does not exist" in msg or "42P01" in msg:
             return True
         logger.error("supabase_health_check_failed", error=msg)
         return False

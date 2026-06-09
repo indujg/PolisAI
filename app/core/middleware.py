@@ -77,10 +77,9 @@ def register_middleware(app: FastAPI, settings) -> None:  # type: ignore[no-unty
     app.add_middleware(RequestLoggingMiddleware)
     app.add_middleware(RequestContextMiddleware)
 
-    origins = [str(o) for o in settings.ALLOWED_ORIGINS]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=origins or ["*"],
+        allow_origins=settings.allowed_origins,
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

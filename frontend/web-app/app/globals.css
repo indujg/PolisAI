@@ -1,0 +1,154 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-sans: "Inter", "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+    --font-mono: "SFMono-Regular", "Cascadia Code", "Roboto Mono", monospace;
+    --background: 180 32% 98%;
+    --foreground: 217 39% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 217 39% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 217 39% 10%;
+    --primary: 180 100% 31%;
+    --primary-foreground: 180 48% 98%;
+    --secondary: 224 100% 59%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 195 27% 93%;
+    --muted-foreground: 216 16% 39%;
+    --accent: 40 92% 60%;
+    --accent-foreground: 219 43% 12%;
+    --destructive: 355 88% 58%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 194 27% 88%;
+    --input: 194 27% 88%;
+    --ring: 180 100% 31%;
+    --chart-1: 180 100% 31%;
+    --chart-2: 224 100% 59%;
+    --chart-3: 251 100% 68%;
+    --chart-4: 40 92% 60%;
+    --chart-5: 148 58% 44%;
+    --radius: 0.5rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply min-h-screen overflow-x-hidden bg-background text-foreground antialiased;
+    background:
+      linear-gradient(180deg, rgba(250, 253, 253, 0.98), rgba(241, 248, 248, 0.98)),
+      linear-gradient(135deg, rgba(47, 107, 255, 0.08), transparent 32%, rgba(19, 200, 195, 0.08)),
+      linear-gradient(rgba(47, 107, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0, 158, 157, 0.035) 1px, transparent 1px);
+    background-size: auto, auto, 32px 32px, 32px 32px;
+  }
+
+  ::selection {
+    background: rgba(19, 200, 195, 0.24);
+  }
+}
+
+@layer components {
+  .glass-card {
+    @apply border border-white/75 bg-glass-sheen shadow-glass backdrop-blur-2xl transition-all duration-300;
+  }
+
+  .surface-card {
+    @apply border border-border/80 bg-white/[0.9] shadow-polis-sm backdrop-blur-xl transition-all duration-300;
+  }
+
+  .city-map {
+    @apply relative overflow-hidden bg-city-grid;
+    background-size: 28px 28px;
+  }
+
+  .city-map::before {
+    content: "";
+    position: absolute;
+    inset: -40% 8%;
+    background: linear-gradient(90deg, transparent, rgba(47, 107, 255, 0.18), transparent);
+    filter: blur(2px);
+    animation: signal-scan 9s ease-in-out infinite alternate;
+  }
+
+  .focus-ring {
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background;
+  }
+
+  .token-label {
+    @apply font-mono text-[11px] font-semibold uppercase leading-none text-muted-foreground;
+  }
+
+  .skip-link {
+    @apply focus-ring fixed left-3 top-3 z-[100] -translate-y-20 rounded-md bg-city-graphite px-4 py-2 text-body-sm font-semibold text-white shadow-polis-md transition-transform focus:translate-y-0;
+  }
+
+  .page-frame {
+    @apply mx-auto max-w-[1600px] animate-in fade-in-0 slide-in-from-bottom-2 duration-500;
+  }
+
+  .premium-empty-state {
+    @apply rounded-lg border border-dashed border-border/80 bg-white/[0.72] p-8 text-center shadow-polis-xs backdrop-blur-xl;
+  }
+
+  .skeleton-sheen {
+    position: relative;
+    overflow: hidden;
+  }
+
+  .skeleton-sheen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    transform: translateX(-100%);
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.72), transparent);
+    animation: skeleton-sheen 1.8s ease-in-out infinite;
+  }
+}
+
+@keyframes skeleton-sheen {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (max-width: 640px) {
+  .text-display-md {
+    font-size: 2rem;
+    line-height: 1.08;
+  }
+
+  .text-display-lg {
+    font-size: 2.45rem;
+    line-height: 1.02;
+  }
+
+  .text-display-xl {
+    font-size: 3rem;
+    line-height: 0.98;
+  }
+
+  .text-title-lg {
+    font-size: 1.45rem;
+    line-height: 1.18;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.001ms !important;
+  }
+}
