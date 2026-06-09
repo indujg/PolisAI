@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { apiPost } from "@/lib/api";
+import { useSim } from "@/lib/sim-context";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
@@ -197,11 +199,14 @@ const runTrace = [
 const center = { x: 50, y: 48 };
 
 export function AIAgentCollaboration() {
+  const { simId } = useSim();
   const [selectedAgent, setSelectedAgent] = useState<AgentId>("policy");
   const [tick, setTick] = useState(0);
   const [messages, setMessages] = useState<Message[]>(
     messageTemplates.slice(0, 4).map((message, index) => ({ ...message, id: index + 1 }))
   );
+  const [running, setRunning] = useState(false);
+  const [runResult, setRunResult] = useState<string | null>(null);
 
   useEffect(() => {
     const interval = window.setInterval(() => {
@@ -215,6 +220,23 @@ export function AIAgentCollaboration() {
 
     return () => window.clearInterval(interval);
   }, []);
+
+  async function dispatchAgents() {
+    if (!simId || running) return;
+    setRunning(true);
+    setRunResult(null);
+    try {
+      const res = await apiPost<{ results?: unknown[]; message?: string }>(
+        `/api/v1/agents/run/${simId}?ticks=1`
+      );
+      const count = Array.isArray(res?.results) ? res.results.length : "all";
+      setRunResult(`${count} agents completed.`);
+    } catch (err) {
+      setRunResult(err instanceof Error ? err.message : "Agent run failed");
+    } finally {
+      setRunning(false);
+    }
+  }
 
   const selected = agents.find((agent) => agent.id === selectedAgent) ?? agents[0];
   const activeConnection = tick % connections.length;
@@ -242,20 +264,15 @@ export function AIAgentCollaboration() {
               <RadioTower className="size-3.5" />
               {networkHealth}% graph health
             </Badge>
-            <Button variant="outline">
-              <Activity />
-              Inspect trace
+            <Button variant="signal" disabled={running} onClick={dispatchAgents}>
+              {running ? <Cpu className="size-4 animate-spin" /> : <Send />}
+              {running ? "Running…" : "Dispatch agents"}
             </Button>
-            <Button variant="premium" asChild>
-              <Link href="/agents/telegram">
-                <MessageSquareText />
-                Telegram
-              </Link>
-            </Button>
-            <Button variant="signal">
-              <Send />
-              Dispatch task
-            </Button>
+            {runResult && (
+              <Badge variant={runResult.includes("failed") ? "danger" : "success"} className="text-xs">
+                {runResult}
+              </Badge>
+            )}
           </div>
         </div>
       </section>

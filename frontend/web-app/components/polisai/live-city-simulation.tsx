@@ -1,7 +1,11 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import mapboxgl from "mapbox-gl";
+import { apiPost, apiGet } from "@/lib/api";
+import { connectSimWs } from "@/lib/ws";
+import { useAuth } from "@/lib/auth-context";
+import { useSim } from "@/lib/sim-context";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -13,15 +17,20 @@ import {
   GraduationCap,
   Hospital,
   Info,
+  Loader2,
   LocateFixed,
   Minus,
   MousePointer2,
+  Pause,
+  Play,
   Plus,
   Route,
   School,
   Search,
   ShieldCheck,
+  SkipForward,
   Sparkles,
+  Square,
   TrainFront,
   UsersRound,
   Zap
@@ -159,7 +168,15 @@ const roads = [
   "left-[13%] top-[31%] h-2 w-[68%]"
 ];
 
+type SimStateData = {
+  simulation?: { status?: string; current_tick?: number; name?: string };
+  status?: string;
+  current_tick?: number;
+};
+
 export function LiveCitySimulation() {
+  const { token } = useAuth();
+  const { simId, simName } = useSim();
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [zoom, setZoom] = useState(1);
@@ -167,6 +184,49 @@ export function LiveCitySimulation() {
   const [dragStart, setDragStart] = useState<{ x: number; y: number; panX: number; panY: number } | null>(null);
   const [hovered, setHovered] = useState<CityEntity | VehiclePath | null>(cityEntities[0]);
   const [mapReady, setMapReady] = useState(false);
+  const [simStatus, setSimStatus] = useState<string>("draft");
+  const [currentTick, setCurrentTick] = useState<number>(0);
+  const [ctrlBusy, setCtrlBusy] = useState(false);
+
+  const fetchState = useCallback(async () => {
+    if (!simId) return;
+    try {
+      const s = await apiGet<SimStateData>(`/api/v1/simulations/${simId}/state`);
+      const sim = s.simulation ?? s;
+      setSimStatus(sim.status ?? "draft");
+      setCurrentTick(sim.current_tick ?? 0);
+    } catch {}
+  }, [simId]);
+
+  useEffect(() => { fetchState(); }, [fetchState]);
+
+  useEffect(() => {
+    if (!simId) return;
+    const ws = connectSimWs(simId, "tick", (msg) => {
+      const m = msg as Record<string, unknown>;
+      if (m.channel === "tick") {
+        setCurrentTick((v) => v + 1);
+        setSimStatus("running");
+      }
+    }, token);
+    return () => ws.close();
+  }, [simId, token]);
+
+  async function simControl(action: "start" | "pause" | "stop" | "tick") {
+    if (!simId || ctrlBusy) return;
+    setCtrlBusy(true);
+    try {
+      if (action === "tick") {
+        await apiPost(`/api/v1/simulations/${simId}/tick?ticks=1`);
+        setCurrentTick((v) => v + 1);
+      } else {
+        await apiPost(`/api/v1/simulations/${simId}/${action}`);
+        setSimStatus(action === "start" ? "running" : action === "pause" ? "paused" : "completed");
+      }
+    } catch {} finally {
+      setCtrlBusy(false);
+    }
+  }
 
   const tokenAvailable = Boolean(mapboxToken);
 
@@ -238,18 +298,40 @@ export function LiveCitySimulation() {
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Badge variant={tokenAvailable ? "success" : "warning"} className="gap-1.5">
             <MapboxStatusDot active={tokenAvailable && mapReady} />
             {tokenAvailable ? "Mapbox connected" : "Token fallback"}
           </Badge>
-          <Button variant="outline">
-            <Route />
-            Traffic model
-          </Button>
-          <Button variant="signal">
-            <Zap />
-            Run simulation
+          <Badge variant="glass" className="gap-1.5 font-mono">
+            T+{String(currentTick).padStart(4, "0")}
+          </Badge>
+          <Badge variant={simStatus === "running" ? "success" : simStatus === "paused" ? "warning" : "outline"} className="capitalize">
+            {simStatus}
+          </Badge>
+
+          {/* Simulation controls */}
+          {simStatus !== "running" && simStatus !== "completed" && (
+            <Button variant="signal" size="sm" disabled={ctrlBusy} onClick={() => simControl("start")}>
+              {ctrlBusy ? <Loader2 className="size-4 animate-spin" /> : <Play className="size-4" />}
+              Start
+            </Button>
+          )}
+          {simStatus === "running" && (
+            <Button variant="outline" size="sm" disabled={ctrlBusy} onClick={() => simControl("pause")}>
+              {ctrlBusy ? <Loader2 className="size-4 animate-spin" /> : <Pause className="size-4" />}
+              Pause
+            </Button>
+          )}
+          {(simStatus === "running" || simStatus === "paused") && (
+            <Button variant="outline" size="sm" disabled={ctrlBusy} onClick={() => simControl("stop")}>
+              <Square className="size-4" />
+              Stop
+            </Button>
+          )}
+          <Button variant="outline" size="sm" disabled={ctrlBusy} onClick={() => simControl("tick")}>
+            <SkipForward className="size-4" />
+            Tick
           </Button>
         </div>
       </section>

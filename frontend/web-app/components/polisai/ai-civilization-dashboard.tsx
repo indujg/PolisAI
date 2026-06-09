@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { apiGet } from "@/lib/api";
+import { useSim } from "@/lib/sim-context";
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
@@ -180,9 +182,43 @@ const tooltipLabelStyle = {
   fontWeight: 700
 };
 
-const citizens = generateCitizens(1000);
+const fallbackCitizens = generateCitizens(100);
+
+type ApiCitizen = {
+  id: string | number;
+  first_name?: string;
+  last_name?: string;
+  name?: string;
+  age?: number;
+  income?: number;
+  happiness?: number;
+  health?: number;
+  occupation?: string;
+  district?: string;
+  x?: number;
+  y?: number;
+};
+
+function mapApiCitizen(c: ApiCitizen, index: number): Citizen {
+  const name = c.name ?? `${c.first_name ?? firstNames[index % firstNames.length]} ${c.last_name ?? lastNames[index % lastNames.length]}`;
+  const occ = (occupations.includes(c.occupation as Occupation) ? c.occupation : occupations[index % occupations.length]) as Occupation;
+  const dist = (districts.includes(c.district as District) ? c.district : districts[index % districts.length]) as District;
+  return {
+    id: typeof c.id === "number" ? c.id : index,
+    name,
+    age: c.age ?? 25 + (index % 50),
+    income: c.income ?? incomeBase[occ],
+    happiness: typeof c.happiness === "number" ? Math.round(c.happiness > 1 ? c.happiness : c.happiness * 100) : 70,
+    health: typeof c.health === "number" ? Math.round(c.health > 1 ? c.health : c.health * 100) : 75,
+    occupation: occ,
+    district: dist,
+    heatX: c.x ?? (index % 8) * 12 + 5,
+    heatY: c.y ?? Math.floor(index / 8) * 12 + 5,
+  };
+}
 
 export function AICivilizationDashboard() {
+  const { simId } = useSim();
   const [query, setQuery] = useState("");
   const [occupation, setOccupation] = useState("All");
   const [district, setDistrict] = useState("All");
@@ -191,10 +227,24 @@ export function AICivilizationDashboard() {
   const [groupBy, setGroupBy] = useState<GroupBy>("district");
   const [selectedHeatCell, setSelectedHeatCell] = useState<number | null>(null);
   const [chartsReady, setChartsReady] = useState(false);
+  const [citizens, setCitizens] = useState<Citizen[]>(fallbackCitizens);
 
   useEffect(() => {
     setChartsReady(true);
-  }, []);
+    if (!simId) return;
+    apiGet<{ items?: ApiCitizen[]; citizens?: ApiCitizen[] } | ApiCitizen[]>(
+      `/api/v1/simulations/${simId}/citizens?limit=200&offset=0`
+    )
+      .then((res) => {
+        const list: ApiCitizen[] = Array.isArray(res)
+          ? res
+          : (res as { items?: ApiCitizen[]; citizens?: ApiCitizen[] }).items
+            ?? (res as { citizens?: ApiCitizen[] }).citizens
+            ?? [];
+        if (list.length > 0) setCitizens(list.map(mapApiCitizen));
+      })
+      .catch(() => {});
+  }, [simId]);
 
   const filteredCitizens = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -241,20 +291,6 @@ export function AICivilizationDashboard() {
               <Activity className="size-3.5" />
               Live model
             </Badge>
-            <Button variant="premium" asChild>
-              <Link href="/citizens/card">
-                <CreditCard />
-                NFC card
-              </Link>
-            </Button>
-            <Button variant="outline">
-              <ShieldCheck />
-              Privacy safe
-            </Button>
-            <Button variant="signal">
-              <Sparkles />
-              Ask PolisAI
-            </Button>
           </div>
         </div>
       </section>

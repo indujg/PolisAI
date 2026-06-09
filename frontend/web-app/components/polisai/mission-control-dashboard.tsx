@@ -1,6 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { apiGet } from "@/lib/api";
+import { connectSimWs } from "@/lib/ws";
+import { useAuth } from "@/lib/auth-context";
+import { useSim } from "@/lib/sim-context";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -168,35 +172,88 @@ const tooltipLabelStyle = {
   fontWeight: 700
 };
 
+type AnalyticsSnapshot = {
+  sim_id?: string;
+  tick?: number;
+  happiness?: number;
+  health?: number;
+  gdp?: number;
+  income?: number;
+  crime?: number;
+  literacy?: number;
+  approval?: number;
+  unemployment?: number;
+  inequality?: number;
+  population?: number;
+  kpis?: Record<string, number>;
+};
+
+function mapAnalyticsToKpis(data: AnalyticsSnapshot): Kpi[] {
+  const raw = data.kpis ?? data;
+  const get = (key: string, fallback: number) =>
+    typeof (raw as Record<string, unknown>)[key] === "number"
+      ? ((raw as Record<string, number>)[key])
+      : fallback;
+  return [
+    { ...baseKpis[0], value: get("population", baseKpis[0].value) },
+    { ...baseKpis[1], value: get("gdp", baseKpis[1].value) },
+    { ...baseKpis[2], value: get("happiness", baseKpis[2].value) },
+    { ...baseKpis[3], value: get("unemployment", baseKpis[3].value) },
+    { ...baseKpis[4], value: get("crime", baseKpis[4].value) },
+    { ...baseKpis[5], value: get("health", baseKpis[5].value) },
+  ];
+}
+
 export function MissionControlDashboard() {
+  const { token } = useAuth();
+  const { simId } = useSim();
   const [tick, setTick] = useState(0);
   const [chartsReady, setChartsReady] = useState(false);
+  const [liveKpiBase, setLiveKpiBase] = useState<Kpi[]>(baseKpis);
+  const [wsEvent, setWsEvent] = useState<string | null>(null);
+
+  const fetchAnalytics = useCallback(async () => {
+    if (!simId) return;
+    try {
+      const data = await apiGet<AnalyticsSnapshot>(`/api/v1/analytics?sim_id=${simId}`);
+      setLiveKpiBase(mapAnalyticsToKpis(data));
+    } catch {}
+  }, [simId]);
 
   useEffect(() => {
     setChartsReady(true);
+    fetchAnalytics();
     const interval = window.setInterval(() => {
       setTick((value) => value + 1);
     }, 2200);
-
     return () => window.clearInterval(interval);
-  }, []);
+  }, [fetchAnalytics]);
+
+  useEffect(() => {
+    if (!simId) return;
+    const ws = connectSimWs(simId, "tick,events", (msg) => {
+      const m = msg as Record<string, unknown>;
+      if (m.channel === "tick") {
+        fetchAnalytics();
+        setTick((v) => v + 1);
+      }
+      if (m.channel === "events" && typeof m.message === "string") {
+        setWsEvent(m.message as string);
+      }
+    }, token);
+    return () => ws.close();
+  }, [simId, token, fetchAnalytics]);
 
   const kpis = useMemo(
     () =>
-      baseKpis.map((kpi, index) => {
-        const wave = Math.sin((tick + index * 1.7) / 2.8);
-        const drift = kpi.id === "traffic" || kpi.id === "pollution" ? -wave : wave;
-        const scale = kpi.id === "gdp" ? 2.6 : kpi.id === "population" ? 0.02 : 1.1;
-
-        return {
-          ...kpi,
-          value: kpi.value + drift * scale
-        };
+      liveKpiBase.map((kpi, index) => {
+        const wave = Math.sin((tick + index * 1.7) / 2.8) * 0.1;
+        return { ...kpi, value: kpi.value + wave };
       }),
-    [tick]
+    [tick, liveKpiBase]
   );
 
-  const activeEvent = liveEvents[tick % liveEvents.length];
+  const activeEvent = wsEvent ?? liveEvents[tick % liveEvents.length];
 
   return (
     <div className="grid gap-5">
@@ -214,16 +271,10 @@ export function MissionControlDashboard() {
                   A NASA-grade operating view for population, GDP, happiness, traffic, pollution, and healthcare readiness.
                 </p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline">
-                  <LineChart />
-                  Executive brief
-                </Button>
-                <Button variant="signal">
-                  <Command />
-                  Run city scan
-                </Button>
-              </div>
+              <Badge variant="success" className="gap-1.5">
+                <CircleDot className="size-3.5" />
+                Live
+              </Badge>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">

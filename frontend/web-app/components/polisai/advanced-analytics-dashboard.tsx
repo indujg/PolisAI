@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { apiGet } from "@/lib/api";
+import { useSim } from "@/lib/sim-context";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import { interpolateRgb, linkHorizontal, scaleLinear } from "d3";
@@ -173,15 +175,43 @@ const tooltipLabelStyle = {
   fontWeight: 700
 };
 
+type AnalyticsReport = {
+  series?: Array<Record<string, number | string>>;
+  kpis?: Record<string, number>;
+  tick?: number;
+};
+
 export function AdvancedAnalyticsDashboard() {
+  const { simId } = useSim();
   const [selectedMetric, setSelectedMetric] = useState<MetricKey>("gdp");
   const [chartsReady, setChartsReady] = useState(false);
+  const [liveMetrics, setLiveMetrics] = useState<MetricConfig[]>(metrics);
   const heatmap = useMemo(() => buildHeatmap(selectedMetric), [selectedMetric]);
-  const selectedMetricConfig = metrics.find((metric) => metric.key === selectedMetric) ?? metrics[0];
+  const selectedMetricConfig = liveMetrics.find((metric) => metric.key === selectedMetric) ?? liveMetrics[0];
 
   useEffect(() => {
     setChartsReady(true);
-  }, []);
+    if (!simId) return;
+    apiGet<AnalyticsReport>(`/api/v1/analytics?sim_id=${simId}`)
+      .then((res) => {
+        const kpis = res.kpis ?? (res as Record<string, unknown>);
+        const get = (k: string, fallback: string) => {
+          const v = (kpis as Record<string, unknown>)[k];
+          return typeof v === "number" ? v.toFixed(1) : fallback;
+        };
+        setLiveMetrics((prev) =>
+          prev.map((m) => {
+            if (m.key === "gdp") return { ...m, value: `${get("gdp", m.value)}%` };
+            if (m.key === "healthcare") return { ...m, value: `${get("health", m.value)}%` };
+            if (m.key === "education") return { ...m, value: get("literacy", m.value) };
+            if (m.key === "traffic") return { ...m, value: `${get("unemployment", m.value)}%` };
+            if (m.key === "carbon") return { ...m, value: `${get("crime", m.value)}` };
+            return m;
+          })
+        );
+      })
+      .catch(() => {});
+  }, [simId]);
 
   return (
     <div className="grid gap-5">
@@ -202,14 +232,6 @@ export function AdvancedAnalyticsDashboard() {
               <RadioTower className="size-3.5" />
               Live telemetry
             </Badge>
-            <Button variant="outline">
-              <ShieldCheck />
-              Audit model
-            </Button>
-            <Button variant="signal">
-              <Sparkles />
-              Generate brief
-            </Button>
           </div>
         </div>
       </section>

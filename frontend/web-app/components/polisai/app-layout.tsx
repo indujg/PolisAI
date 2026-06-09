@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { AppNavbar } from "@/components/polisai/app-navbar";
 import { AppSidebar } from "@/components/polisai/app-sidebar";
+import { AiChat } from "@/components/polisai/ai-chat";
 import { cn } from "@/lib/utils";
 
 export function PolisAppLayout({ children }: { children: ReactNode }) {
@@ -96,6 +97,7 @@ export function PolisAppLayout({ children }: { children: ReactNode }) {
           </div>
         </main>
       </div>
+      <AiChat />
     </div>
   );
 }

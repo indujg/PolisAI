@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   Building2,
   ChevronRight,
+  FlaskConical,
   PanelLeftClose,
   PanelLeftOpen,
   Radio,
@@ -14,6 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { getActiveNavItem, navigationItems, navSections } from "@/components/polisai/navigation";
+import { useSim } from "@/lib/sim-context";
 import { cn } from "@/lib/utils";
 
 export function AppSidebar({
@@ -29,6 +31,7 @@ export function AppSidebar({
 }) {
   const pathname = usePathname();
   const activeItem = getActiveNavItem(pathname);
+  const { simName } = useSim();
 
   return (
     <aside className="flex h-full flex-col border-r border-white/75 bg-white/[0.86] shadow-glass backdrop-blur-2xl">
@@ -119,18 +122,20 @@ export function AppSidebar({
         >
           <div className="flex items-center gap-3">
             <div className="grid size-9 shrink-0 place-items-center rounded-md bg-city-signal/10 text-city-signal">
-              <Radio className="size-4" />
+              <FlaskConical className="size-4" />
             </div>
             <div className={cn("min-w-0 transition-all duration-200", collapsed && !mobile && "w-0 opacity-0")}>
               <div className="flex items-center gap-2">
-                <p className="truncate text-body-sm font-semibold text-foreground">City Mesh</p>
+                <p className="truncate text-body-sm font-semibold text-foreground">
+                  {simName || "No simulation"}
+                </p>
                 <Sparkles className="size-3.5 text-city-civic" />
               </div>
-              <p className="truncate text-caption text-muted-foreground">1,284 streams online</p>
+              <p className="truncate text-caption text-muted-foreground">Active world</p>
             </div>
           </div>
           <div className={cn("mt-3", collapsed && !mobile && "hidden")}>
-            <Badge variant="success">99.2% uptime</Badge>
+            <Badge variant={simName ? "success" : "warning"}>{simName ? "Running" : "No sim"}</Badge>
           </div>
         </div>
       </div>

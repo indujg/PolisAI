@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { apiPost } from "@/lib/api";
+import { useSim } from "@/lib/sim-context";
 import type { LucideIcon } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -19,6 +21,7 @@ import {
   FileText,
   GraduationCap,
   HeartPulse,
+  Loader2,
   Newspaper,
   RadioTower,
   Search,
@@ -292,22 +295,54 @@ const tooltipLabelStyle = {
 };
 
 export function AiNewsCenter() {
+  const { simId } = useSim();
   const [activeCategory, setActiveCategory] = useState<CategoryFilter>("all");
   const [query, setQuery] = useState("");
   const [tick, setTick] = useState(0);
   const [chartsReady, setChartsReady] = useState(false);
+  const [generatingNews, setGeneratingNews] = useState(false);
+  const [liveNews, setLiveNews] = useState<NewsItem[]>([]);
 
   useEffect(() => {
     setChartsReady(true);
     const interval = window.setInterval(() => setTick((value) => value + 1), 2600);
-
     return () => window.clearInterval(interval);
   }, []);
+
+  async function generateNews() {
+    if (!simId || generatingNews) return;
+    setGeneratingNews(true);
+    try {
+      const res = await apiPost<{ headline?: string; body?: string; summary?: string; category?: string }>(
+        `/api/v1/ai/simulations/${simId}/news`
+      );
+      if (res?.headline) {
+        const freshItem: NewsItem = {
+          id: String(Date.now()),
+          category: (res.category ?? "policy") as NewsCategory,
+          headline: res.headline,
+          summary: res.summary ?? res.body ?? "",
+          source: "PolisAI Bulletin",
+          district: "Citywide",
+          sentiment: "Neutral",
+          sentimentScore: 50,
+          impact: 65,
+          velocity: "Rising",
+          tags: ["ai-generated"],
+          timestamp: "Just now",
+        };
+        setLiveNews((prev) => [freshItem, ...prev].slice(0, 20));
+      }
+    } catch {}
+    setGeneratingNews(false);
+  }
+
+  const allNews = [...liveNews, ...newsItems];
 
   const filteredNews = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    return newsItems.filter((item) => {
+    return allNews.filter((item) => {
       const categoryMatch = activeCategory === "all" || item.category === activeCategory;
       const queryMatch =
         normalizedQuery.length === 0 ||
@@ -318,14 +353,14 @@ export function AiNewsCenter() {
 
       return categoryMatch && queryMatch;
     });
-  }, [activeCategory, query]);
+  }, [activeCategory, query, allNews]);
 
   const leadStory = filteredNews[0] ?? newsItems[0];
   const activeTicker = tickerSignals[tick % tickerSignals.length];
   const positiveShare = Math.round(
-    newsItems.reduce((total, item) => total + Math.max(item.sentimentScore, 0), 0) / newsItems.length
+    allNews.reduce((total, item) => total + Math.max(item.sentimentScore, 0), 0) / allNews.length
   );
-  const alertCount = newsItems.filter((item) => item.sentiment === "Alert" || item.sentiment === "Negative").length;
+  const alertCount = allNews.filter((item) => item.sentiment === "Alert" || item.sentiment === "Negative").length;
 
   return (
     <div className="grid gap-5">
@@ -352,13 +387,9 @@ export function AiNewsCenter() {
                 <CircleDot className="size-3.5" />
                 Live feed
               </Badge>
-              <Button variant="outline">
-                <Download />
-                Export brief
-              </Button>
-              <Button variant="signal">
-                <Sparkles />
-                Generate report
+              <Button variant="signal" onClick={generateNews} disabled={generatingNews}>
+                {generatingNews ? <Loader2 className="size-4 animate-spin" /> : <Sparkles />}
+                {generatingNews ? "Generating…" : "Generate report"}
               </Button>
             </div>
           </div>

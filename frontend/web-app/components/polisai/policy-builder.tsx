@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState, type ReactNode } from "react";
+import { apiPost } from "@/lib/api";
+import { useSim } from "@/lib/sim-context";
 import type { LucideIcon } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -163,9 +165,13 @@ const initialForm: PolicyForm = {
 };
 
 export function PolicyBuilder() {
+  const { simId } = useSim();
   const [step, setStep] = useState(0);
   const [form, setForm] = useState<PolicyForm>(initialForm);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   const selectedPolicy = policyTypes.find((policy) => policy.id === form.policyType) ?? null;
   const impact = useMemo(() => calculateImpact(form), [form]);
@@ -243,6 +249,36 @@ export function PolicyBuilder() {
     setStep((value) => Math.max(value - 1, 0));
   }
 
+  async function submitPolicy() {
+    if (!validateStep(2) || !simId) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const selected = policyTypes.find((p) => p.id === form.policyType);
+      const payload = {
+        simulation_id: simId,
+        name: form.policyName,
+        category: form.policyType,
+        description: selected?.description ?? "",
+        district: form.district,
+        implementation_period: form.implementation,
+        budget_millions: form.budget,
+        intensity: form.intensity,
+        target_reach: form.targetReach,
+        safeguards: Object.entries(form.toggles)
+          .filter(([, v]) => v)
+          .map(([k]) => k),
+        status: "proposed",
+      };
+      await apiPost("/api/v1/policies", payload);
+      setSubmitted(true);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : "Failed to create policy");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   return (
     <div className="grid gap-5">
       <section className="glass-card city-map overflow-hidden rounded-lg p-4 sm:p-5 lg:p-6">
@@ -314,11 +350,16 @@ export function PolicyBuilder() {
                     Continue
                     <ArrowRight />
                   </Button>
+                ) : submitted ? (
+                  <Badge variant="success" className="px-4 py-2">Policy submitted!</Badge>
                 ) : (
-                  <Button onClick={() => validateStep(2)} variant="signal">
-                    Generate proposal
-                    <FileCheck2 />
-                  </Button>
+                  <>
+                    {submitError && <p className="text-caption text-city-coral">{submitError}</p>}
+                    <Button onClick={submitPolicy} variant="signal" disabled={submitting}>
+                      {submitting ? "Submitting…" : "Generate proposal"}
+                      <FileCheck2 />
+                    </Button>
+                  </>
                 )}
               </div>
             </div>
