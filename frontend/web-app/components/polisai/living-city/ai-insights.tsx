@@ -26,6 +26,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { CITY, iso, type Building } from "./city-model";
+import type { Kpis } from "@/lib/polis-api";
 
 type View = { scale: number; x: number; y: number };
 
@@ -92,7 +93,25 @@ const INSIGHTS: Insight[] = [
   mk("policy", { x: CENTER.x + 120, y: CENTER.y - 70 }, Sparkles, "#9D7BFF", "Policy sim", 2.4, "% mobility", "+", 1),
 ];
 
-export function AiInsights({ view, containerRef }: { view: View; containerRef: RefObject<HTMLDivElement | null> }) {
+// Cards whose semantics map cleanly to a backend KPI index (all 0–100, "%").
+function liveOverrides(kpis?: Partial<Kpis>): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!kpis) return out;
+  if (typeof kpis.wellbeing_score === "number") out.approval = Math.round(kpis.wellbeing_score);
+  if (typeof kpis.healthcare_index === "number") out.er = Math.round(kpis.healthcare_index);
+  if (typeof kpis.education_index === "number") out.education = Math.round(kpis.education_index);
+  return out;
+}
+
+export function AiInsights({
+  view,
+  containerRef,
+  kpis,
+}: {
+  view: View;
+  containerRef: RefObject<HTMLDivElement | null>;
+  kpis?: Partial<Kpis>;
+}) {
   const [idx, setIdx] = useState(0);
   useEffect(() => {
     const t = setInterval(() => setIdx((i) => i + 1), 4200);
@@ -103,6 +122,7 @@ export function AiInsights({ view, containerRef }: { view: View; containerRef: R
   const W = el?.clientWidth ?? 1280;
   const H = el?.clientHeight ?? 760;
   const B = CITY.bounds;
+  const overrides = liveOverrides(kpis);
   const shown = [0, 1, 2].map((k) => INSIGHTS[(idx + k) % INSIGHTS.length]);
 
   return (
@@ -112,14 +132,16 @@ export function AiInsights({ view, containerRef }: { view: View; containerRef: R
           const sx = view.x + (ins.x - B.minX) * view.scale;
           const sy = view.y + (ins.y - B.minY) * view.scale;
           if (sx < 90 || sx > W - 90 || sy < 130 || sy > H - 150) return null;
-          return <InsightCard key={ins.id} ins={ins} x={sx} y={sy} />;
+          const liveVal = overrides[ins.id];
+          const card = liveVal != null ? { ...ins, value: liveVal } : ins;
+          return <InsightCard key={ins.id} ins={card} x={sx} y={sy} live={liveVal != null} />;
         })}
       </AnimatePresence>
     </div>
   );
 }
 
-function InsightCard({ ins, x, y }: { ins: Insight; x: number; y: number }) {
+function InsightCard({ ins, x, y, live = false }: { ins: Insight; x: number; y: number; live?: boolean }) {
   const Icon = ins.icon;
   return (
     <motion.div
@@ -141,7 +163,10 @@ function InsightCard({ ins, x, y }: { ins: Insight; x: number; y: number }) {
               <Icon className="size-4" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-wider text-white/55">{ins.label}</p>
+              <p className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-white/55">
+                {ins.label}
+                {live ? <span className="size-1.5 rounded-full bg-[#34E5A0] shadow-[0_0_6px_#34E5A0]" /> : null}
+              </p>
               <p className="flex items-center gap-1 font-mono text-[14px] font-bold leading-tight" style={{ color: ins.accent }}>
                 <span>
                   {ins.sign}

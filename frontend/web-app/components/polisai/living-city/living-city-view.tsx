@@ -85,6 +85,9 @@ import { AiInsights } from "./ai-insights";
 import { BootSequence } from "./boot-sequence";
 import { emitEmergency, emitPolicy, useSimBus } from "./sim-bus";
 import { useLiveSim } from "./live-sim";
+import { useLiveAnalytics } from "./live-analytics";
+import { useSim } from "@/lib/sim-context";
+import { listPolicies, simulatePolicy, getRecommendations } from "@/lib/polis-api";
 import {
   CITY,
   iso,
@@ -365,6 +368,8 @@ export function LivingCityView() {
   const [emergency, setEmergency] = useState<Scenario | null>(null);
   const [heatLayer, setHeatLayer] = useState<HeatLayerId | null>(null);
   const liveSim = useLiveSim(); // bridges backend KPIs + WS events into the cascade
+  const liveAnalytics = useLiveAnalytics(); // real KPI snapshot + population stats
+  const { simId } = useSim(); // selected simulation → enables live projection
   const [tool, setTool] = useState<"heat" | "legend" | "emergency" | null>(null);
   const [policyOpen, setPolicyOpen] = useState(false);
   const [scenarioOpen, setScenarioOpen] = useState(false);
@@ -729,7 +734,7 @@ export function LivingCityView() {
       <div className="pointer-events-none absolute inset-0 z-[6] rounded-3xl" style={{ boxShadow: "inset 0 0 120px 10px rgba(8,14,24,0.35), inset 0 0 24px rgba(8,14,24,0.25)" }} />
 
       {/* floating AI insights narrating the city */}
-      <AiInsights view={view} containerRef={containerRef} />
+      <AiInsights view={view} containerRef={containerRef} kpis={liveAnalytics.loaded ? liveAnalytics.kpis : undefined} />
 
       {/* top-left: minimal identity + the only persistent widget besides news */}
       <div className="pointer-events-none absolute left-5 top-5 z-10 flex flex-col gap-3">
@@ -808,6 +813,7 @@ export function LivingCityView() {
             traffic={trafficReduction}
             pollution={pollutionReduction}
             clean={cleanBoost}
+            simId={simId}
             onClose={() => setScenarioOpen(false)}
           />
         ) : null}
@@ -2659,17 +2665,39 @@ const SDGS = [
   { n: 16, label: "Strong Institutions", color: "#00689D" },
 ];
 
+// Maps raw projection metric keys → display rows (value shown as % change).
+const REAL_METRIC_ROWS: { key: string; label: string; goodUp: boolean }[] = [
+  { key: "avg_happiness", label: "Citizen happiness", goodUp: true },
+  { key: "avg_health", label: "Public health", goodUp: true },
+  { key: "gdp", label: "GDP", goodUp: true },
+  { key: "avg_income", label: "Avg income", goodUp: true },
+  { key: "crime_rate", label: "Crime rate", goodUp: false },
+  { key: "unemployment_rate", label: "Unemployment", goodUp: false },
+];
+
+type ReportRow = { label: string; value: number; unit: string; good: boolean };
+type LiveReport = {
+  rows: ReportRow[];
+  insights: string[];
+  recommendation: string | null;
+  policyName: string;
+  tick: number;
+  nTicks: number;
+};
+
 function ScenarioReport({
   policies,
   traffic,
   pollution,
   clean,
+  simId,
   onClose,
 }: {
   policies: Set<string>;
   traffic: number;
   pollution: number;
   clean: number;
+  simId: string | null;
   onClose: () => void;
 }) {
   const n = policies.size;
@@ -2680,7 +2708,7 @@ function ScenarioReport({
   const approval = Math.round(traffic * 30 + pollution * 22 + clean * 26);
   const expenditure = Math.round(n * 3 + clean * 18);
 
-  const rows: { label: string; value: number; unit: string; good: boolean }[] = [
+  const syntheticRows: ReportRow[] = [
     { label: "EV adoption", value: evAdoption, unit: "%", good: true },
     { label: "Carbon emissions", value: emissions, unit: "%", good: true },
     { label: "Traffic congestion", value: congestion, unit: "%", good: true },
@@ -2688,6 +2716,72 @@ function ScenarioReport({
     { label: "Citizen approval", value: approval, unit: "%", good: true },
     { label: "Govt. expenditure", value: expenditure, unit: "%", good: false },
   ];
+
+  // ── Real projection from the backend (when a sim with an active policy exists)
+  const [live, setLive] = useState<LiveReport | null>(null);
+  const [loadingLive, setLoadingLive] = useState(false);
+
+  useEffect(() => {
+    if (!simId) {
+      setLive(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingLive(true);
+    (async () => {
+      try {
+        const active = await listPolicies(simId, "active");
+        const policy = Array.isArray(active) && active.length ? active[0] : null;
+        if (!policy) {
+          if (!cancelled) setLive(null);
+          return;
+        }
+        const N_TICKS = 120; // ~10 simulated years
+        const [proj, rec] = await Promise.all([
+          simulatePolicy(policy.id, N_TICKS),
+          getRecommendations(simId).catch(() => null),
+        ]);
+        if (cancelled) return;
+
+        const rows: ReportRow[] = [];
+        for (const m of REAL_METRIC_ROWS) {
+          const d = proj.delta?.[m.key];
+          const cur = proj.current_metrics?.[m.key];
+          if (typeof d !== "number" || !cur) continue;
+          const pct = Number(((d / Math.abs(cur)) * 100).toFixed(1));
+          if (!Number.isFinite(pct) || pct === 0) continue;
+          rows.push({ label: m.label, value: pct, unit: "%", good: pct >= 0 === m.goodUp });
+        }
+
+        let recommendation: string | null = null;
+        const r = rec?.recommendations as unknown;
+        if (typeof r === "string") recommendation = r;
+        else if (Array.isArray(r)) recommendation = r.map((x) => (typeof x === "string" ? x : "")).filter(Boolean).join(" ");
+        else if (r && typeof r === "object" && typeof (r as Record<string, unknown>).summary === "string")
+          recommendation = (r as Record<string, string>).summary;
+
+        setLive({
+          rows: rows.length ? rows : syntheticRows,
+          insights: Array.isArray(proj.key_insights) ? proj.key_insights.slice(0, 4) : [],
+          recommendation,
+          policyName: policy.name,
+          tick: proj.n_ticks ? N_TICKS : 0,
+          nTicks: proj.n_ticks ?? N_TICKS,
+        });
+      } catch {
+        if (!cancelled) setLive(null); // fall back to synthetic
+      } finally {
+        if (!cancelled) setLoadingLive(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [simId]);
+
+  const isLive = live !== null;
+  const rows = live?.rows ?? syntheticRows;
   const maxMag = Math.max(1, ...rows.map((r) => Math.abs(r.value)));
 
   const activeSdg = new Set<number>([11, 16]);
@@ -2698,9 +2792,12 @@ function ScenarioReport({
   if (traffic > 0) activeSdg.add(9);
 
   const recommendation =
-    n === 0
-      ? "Enable one or more policies in the Policy Lab to project a 10-year scenario."
-      : "Proceed with phased implementation while scaling charging infrastructure and monitoring public expenditure. Re-run after 24 simulated months to validate second-order effects.";
+    live?.recommendation ??
+    (live?.insights.length
+      ? live.insights[0]
+      : n === 0
+        ? "Enable one or more policies in the Policy Lab to project a 10-year scenario."
+        : "Proceed with phased implementation while scaling charging infrastructure and monitoring public expenditure. Re-run after 24 simulated months to validate second-order effects.");
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="absolute inset-0 z-40 grid place-items-center p-4">
@@ -2718,9 +2815,22 @@ function ScenarioReport({
         <div className="mb-1 flex items-center gap-2">
           <LineChart className="size-4 text-city-civic" />
           <p className="text-title-md text-foreground">10-Year Scenario Projection</p>
+          {isLive ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-[#34E5A0]/12 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#1B9E6B]">
+              <span className="relative flex size-1.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#34E5A0] opacity-70" />
+                <span className="relative inline-flex size-1.5 rounded-full bg-[#34E5A0]" />
+              </span>
+              Live
+            </span>
+          ) : loadingLive ? (
+            <span className="text-[10px] font-bold uppercase tracking-wide text-muted-foreground">Modeling…</span>
+          ) : null}
         </div>
         <p className="mb-4 text-body-sm text-muted-foreground">
-          {n} active {n === 1 ? "policy" : "policies"} · projected to 2036 · multi-agent consensus
+          {isLive
+            ? `Policy “${live!.policyName}” · ${live!.nTicks} ticks ahead · backend impact model`
+            : `${n} active ${n === 1 ? "policy" : "policies"} · projected to 2036 · multi-agent consensus`}
         </p>
 
         {/* metric comparison bars */}
@@ -2761,6 +2871,21 @@ function ScenarioReport({
           </div>
           <p className="text-body-sm leading-relaxed text-muted-foreground">{recommendation}</p>
         </div>
+
+        {/* Real key insights from the backend impact model */}
+        {isLive && live!.insights.length ? (
+          <div className="mt-4">
+            <p className="token-label mb-2">Impact model insights</p>
+            <ul className="grid gap-1.5">
+              {live!.insights.map((ins, i) => (
+                <li key={i} className="flex items-start gap-2 text-body-sm text-muted-foreground">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-city-civic" />
+                  {ins}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : null}
 
         {/* SDG alignment */}
         <div className="mt-4">
