@@ -27,7 +27,15 @@ export async function api<T = unknown>(path: string, init: RequestInit = {}): Pr
   });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    throw new Error(body?.detail ?? `${res.status} ${res.statusText}`);
+    // FastAPI 422 returns detail as an array of validation errors
+    const detail = body?.detail;
+    let message: string;
+    if (Array.isArray(detail)) {
+      message = detail.map((e: { msg?: string }) => e.msg?.replace(/^Value error, /, "") ?? "").filter(Boolean).join("; ");
+    } else {
+      message = detail ?? `${res.status} ${res.statusText}`;
+    }
+    throw new Error(message);
   }
   const text = await res.text();
   return text ? (JSON.parse(text) as T) : (undefined as T);

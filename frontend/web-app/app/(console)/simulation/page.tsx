@@ -1,5 +1,5 @@
-import { LiveCitySimulation } from "@/components/polisai/live-city-simulation";
+import { FutureTimeline } from "@/components/polisai/future-timeline";
 
 export default function SimulationPage() {
-  return <LiveCitySimulation />;
+  return <FutureTimeline />;
 }

@@ -43,20 +43,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const res = await apiPost<{ access_token: string; user: User }>("/api/v1/auth/login", { email, password });
-    setToken(res.access_token);
-    setTokenState(res.access_token);
+    const res = await apiPost<{ user: User; tokens: { access_token: string } }>("/api/v1/auth/login", { email, password });
+    setToken(res.tokens.access_token);
+    setTokenState(res.tokens.access_token);
     setUser(res.user);
   }, []);
 
   const register = useCallback(async (email: string, password: string, full_name: string) => {
-    const res = await apiPost<{ access_token: string; user: User }>("/api/v1/auth/register", {
+    const res = await apiPost<{ user: User; tokens: { access_token: string } }>("/api/v1/auth/register", {
       email,
       password,
       full_name,
     });
-    setToken(res.access_token);
-    setTokenState(res.access_token);
+    setToken(res.tokens.access_token);
+    setTokenState(res.tokens.access_token);
     setUser(res.user);
   }, []);
 

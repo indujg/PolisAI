@@ -133,6 +133,11 @@ export default function LoginPage() {
                   {showPw ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
                 </button>
               </div>
+              {tab === "register" && (
+                <p className="text-caption text-muted-foreground">
+                  Min 8 chars, at least one uppercase letter and one digit.
+                </p>
+              )}
             </div>
 
             {error && (

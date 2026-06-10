@@ -1,5 +1,5 @@
-import { AIAgentCollaboration } from "@/components/polisai/ai-agent-collaboration";
+import { AgentNetwork } from "@/components/polisai/agent-network";
 
 export default function AgentsPage() {
-  return <AIAgentCollaboration />;
+  return <AgentNetwork />;
 }

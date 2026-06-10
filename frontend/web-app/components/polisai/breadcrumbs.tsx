@@ -17,21 +17,21 @@ export function Breadcrumbs() {
 
   return (
     <nav aria-label="Breadcrumb" className="flex min-w-0 items-center gap-2 text-body-sm">
-      <Link href="/dashboard" className="flex shrink-0 items-center gap-1.5 text-muted-foreground hover:text-foreground">
+      <Link href="/dashboard" className="flex shrink-0 items-center gap-1.5 text-white/50 transition-colors hover:text-white">
         <Home className="size-3.5" />
         <span className="hidden sm:inline">PolisAI</span>
       </Link>
-      <ChevronRight className="size-3.5 shrink-0 text-muted-foreground" />
+      <ChevronRight className="size-3.5 shrink-0 text-white/25" />
       {subRouteLabel ? (
-        <Link href={activeItem.href} className="hidden shrink-0 font-semibold text-muted-foreground hover:text-foreground sm:inline">
+        <Link href={activeItem.href} className="hidden shrink-0 font-semibold text-white/50 transition-colors hover:text-white sm:inline">
           {activeItem.label}
         </Link>
       ) : (
-        <span aria-current="page" className="truncate font-semibold text-foreground">{activeItem.label}</span>
+        <span aria-current="page" className="truncate font-bold text-white">{activeItem.label}</span>
       )}
-      {subRouteLabel ? <ChevronRight className="hidden size-3.5 shrink-0 text-muted-foreground sm:block" /> : null}
-      {subRouteLabel ? <span aria-current="page" className="truncate font-semibold text-foreground">{subRouteLabel}</span> : null}
-      <span className="hidden truncate text-muted-foreground lg:inline">/ {activeItem.description}</span>
+      {subRouteLabel ? <ChevronRight className="hidden size-3.5 shrink-0 text-white/25 sm:block" /> : null}
+      {subRouteLabel ? <span aria-current="page" className="truncate font-bold text-white">{subRouteLabel}</span> : null}
+      <span className="hidden truncate text-white/35 lg:inline">/ {activeItem.description}</span>
     </nav>
   );
 }

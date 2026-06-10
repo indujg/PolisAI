@@ -1,5 +1,5 @@
-import { MissionControlDashboard } from "@/components/polisai/mission-control-dashboard";
+import { LivingCityView } from "@/components/polisai/living-city/living-city-view";
 
 export default function DashboardPage() {
-  return <MissionControlDashboard />;
+  return <LivingCityView />;
 }

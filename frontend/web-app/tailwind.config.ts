@@ -138,11 +138,21 @@ const config: Config = {
         "meter-rise": {
           "0%": { transform: "scaleY(0.2)" },
           "100%": { transform: "scaleY(1)" }
+        },
+        "feed-scroll": {
+          from: { transform: "translateY(0)" },
+          to: { transform: "translateY(-50%)" }
+        },
+        "ticker-scroll": {
+          from: { transform: "translateX(0)" },
+          to: { transform: "translateX(-50%)" }
         }
       },
       animation: {
         "signal-scan": "signal-scan 8s ease-in-out infinite alternate",
-        "meter-rise": "meter-rise 0.7s cubic-bezier(.2,.8,.2,1) both"
+        "meter-rise": "meter-rise 0.7s cubic-bezier(.2,.8,.2,1) both",
+        "feed-scroll": "feed-scroll 36s linear infinite",
+        "ticker-scroll": "ticker-scroll 26s linear infinite"
       }
     }
   },
