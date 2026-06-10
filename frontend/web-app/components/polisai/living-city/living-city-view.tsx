@@ -84,6 +84,7 @@ import { NightLights } from "./night-lights";
 import { AiInsights } from "./ai-insights";
 import { BootSequence } from "./boot-sequence";
 import { emitEmergency, emitPolicy, useSimBus } from "./sim-bus";
+import { useLiveSim } from "./live-sim";
 import {
   CITY,
   iso,
@@ -363,6 +364,7 @@ export function LivingCityView() {
   const [pulse, setPulse] = useState<Pulse | null>(null);
   const [emergency, setEmergency] = useState<Scenario | null>(null);
   const [heatLayer, setHeatLayer] = useState<HeatLayerId | null>(null);
+  const liveSim = useLiveSim(); // bridges backend KPIs + WS events into the cascade
   const [tool, setTool] = useState<"heat" | "legend" | "emergency" | null>(null);
   const [policyOpen, setPolicyOpen] = useState(false);
   const [scenarioOpen, setScenarioOpen] = useState(false);
@@ -732,7 +734,7 @@ export function LivingCityView() {
       {/* top-left: minimal identity + the only persistent widget besides news */}
       <div className="pointer-events-none absolute left-5 top-5 z-10 flex flex-col gap-3">
         <CityHeader />
-        <AgentStatus />
+        <AgentStatus status={liveSim.status} tick={liveSim.tick} />
       </div>
 
       {/* News feed (right rail) — one of the three kept surfaces */}
@@ -2195,9 +2197,11 @@ const AGENT_STATUS = [
   { n: "Healthcare", c: "#F45D6B" },
 ];
 
-function AgentStatus() {
+function AgentStatus({ status = "demo", tick = 0 }: { status?: "demo" | "connecting" | "live"; tick?: number }) {
   const events = useSimBus();
   const latest = events[0];
+  const dotColor = status === "live" ? "#2FB36D" : status === "connecting" ? "#F6B73C" : "#94A3B8";
+  const label = status === "live" ? `live · T+${tick}` : status === "connecting" ? "connecting" : "demo";
   return (
     <motion.div
       initial={{ opacity: 0, y: -10 }}
@@ -2209,9 +2213,9 @@ function AgentStatus() {
           <Network className="size-3.5 text-city-civic" />
           <p className="text-body-sm font-bold text-foreground">AI Agents</p>
         </div>
-        <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-city-park">
-          <motion.span className="size-1.5 rounded-full bg-city-park" animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.4, repeat: Infinity }} />
-          online
+        <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider" style={{ color: dotColor }}>
+          <motion.span className="size-1.5 rounded-full" style={{ background: dotColor }} animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.4, repeat: Infinity }} />
+          {label}
         </span>
       </div>
       <div className="grid gap-1.5">

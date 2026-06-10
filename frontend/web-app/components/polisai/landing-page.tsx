@@ -25,6 +25,7 @@ export function LandingPage() {
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(80%_60%_at_50%_-10%,rgba(45,224,214,0.16),transparent_60%),radial-gradient(60%_50%_at_85%_20%,rgba(77,124,255,0.14),transparent_55%),radial-gradient(50%_50%_at_10%_30%,rgba(157,123,255,0.12),transparent_55%)]" />
         <div className="absolute inset-0 opacity-[0.06] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:46px_46px]" />
+        <div className="grain absolute inset-0 opacity-[0.045] mix-blend-overlay" />
       </div>
 
       {/* nav */}

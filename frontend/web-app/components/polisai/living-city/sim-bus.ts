@@ -95,6 +95,11 @@ export function emitPolicy(id: string, on: boolean) {
   });
 }
 
+/** Inject an event from the live backend (WebSocket) into the cascade. */
+export function pushExternal(e: Omit<SimEvent, "id">) {
+  push(e);
+}
+
 export function emitEmergency(name: string, accent: string, headline: string) {
   push({
     source: "Governance Agent",

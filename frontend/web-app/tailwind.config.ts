@@ -97,16 +97,16 @@ const config: Config = {
         ]
       },
       fontSize: {
-        "display-xl": ["4.5rem", { lineHeight: "0.94", letterSpacing: "0", fontWeight: "720" }],
-        "display-lg": ["3.25rem", { lineHeight: "1", letterSpacing: "0", fontWeight: "700" }],
-        "display-md": ["2.5rem", { lineHeight: "1.08", letterSpacing: "0", fontWeight: "680" }],
-        "title-lg": ["1.75rem", { lineHeight: "1.15", letterSpacing: "0", fontWeight: "650" }],
-        "title-md": ["1.25rem", { lineHeight: "1.25", letterSpacing: "0", fontWeight: "630" }],
-        "body-lg": ["1.0625rem", { lineHeight: "1.65", letterSpacing: "0" }],
-        "body": ["0.9375rem", { lineHeight: "1.55", letterSpacing: "0" }],
+        "display-xl": ["4.5rem", { lineHeight: "0.92", letterSpacing: "-0.035em", fontWeight: "680" }],
+        "display-lg": ["3.25rem", { lineHeight: "0.98", letterSpacing: "-0.03em", fontWeight: "660" }],
+        "display-md": ["2.5rem", { lineHeight: "1.05", letterSpacing: "-0.026em", fontWeight: "640" }],
+        "title-lg": ["1.75rem", { lineHeight: "1.14", letterSpacing: "-0.02em", fontWeight: "620" }],
+        "title-md": ["1.25rem", { lineHeight: "1.25", letterSpacing: "-0.014em", fontWeight: "600" }],
+        "body-lg": ["1.0625rem", { lineHeight: "1.62", letterSpacing: "-0.006em" }],
+        "body": ["0.9375rem", { lineHeight: "1.55", letterSpacing: "-0.004em" }],
         "body-sm": ["0.8125rem", { lineHeight: "1.5", letterSpacing: "0" }],
         "caption": ["0.75rem", { lineHeight: "1.35", letterSpacing: "0" }],
-        "metric": ["2rem", { lineHeight: "1", letterSpacing: "0", fontWeight: "720" }]
+        "metric": ["2rem", { lineHeight: "1", letterSpacing: "-0.02em", fontWeight: "700" }]
       },
       spacing: {
         "0.75": "0.1875rem",

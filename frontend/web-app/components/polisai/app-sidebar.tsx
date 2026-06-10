@@ -42,10 +42,11 @@ export function AppSidebar({
       className="relative flex h-full flex-col overflow-hidden border-r border-white/[0.06] text-white"
       style={{ background: "linear-gradient(180deg,#0C1422 0%,#080D17 100%)" }}
     >
-      {/* ambient glow + grid */}
+      {/* ambient glow + grid + grain */}
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[radial-gradient(70%_38%_at_28%_-6%,rgba(45,224,214,0.16),transparent_60%),radial-gradient(60%_40%_at_90%_110%,rgba(77,124,255,0.12),transparent_60%)]" />
         <div className="absolute inset-0 opacity-[0.05] [background-image:linear-gradient(#fff_1px,transparent_1px),linear-gradient(90deg,#fff_1px,transparent_1px)] [background-size:40px_40px]" />
+        <div className="grain absolute inset-0 opacity-[0.05] mix-blend-overlay" />
       </div>
 
       {/* header */}

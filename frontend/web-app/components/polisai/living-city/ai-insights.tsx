@@ -80,15 +80,15 @@ const mk = (
 ): Insight => ({ id, x: p.x, y: p.y, icon, accent, label, value, decimals, unit, sign, data: trend(id.length * 7919 + value * 31, value) });
 
 const INSIGHTS: Insight[] = [
-  mk("approval", ctr(byKind("government")), Users, "#13C8C3", "Citizen approval", 78, "%", "+"),
-  mk("traffic", CENTER, Car, "#2F6BFF", "Traffic easing", 12, "%", "-"),
-  mk("er", ctr(byKind("hospital")), HeartPulse, "#F45D6B", "ER capacity", 91, "%", ""),
-  mk("load", ctr(byKind("factory")), Factory, "#F6B73C", "Industrial load", 71, "%", ""),
-  mk("transit", METROP, TrainFront, "#775CFF", "Transit demand", 9, "%", "+"),
-  mk("air", RIVER, Wind, "#2FB36D", "Air quality", 38, " AQI", "-"),
-  mk("housing", ctr(byKind("apartment")), Building2, "#13C8C3", "Housing occupancy", 96, "%", ""),
-  mk("education", ctr(byKind("school")), GraduationCap, "#F6B73C", "Education uptake", 4, "%", "+"),
-  mk("grid", { x: CENTER.x - 120, y: CENTER.y + 80 }, Zap, "#34E5A0", "Grid uptime", 99, "%", ""),
+  mk("approval", ctr(byKind("government")), Users, "#13C8C3", "Citizen approval", 73, "%", "+"),
+  mk("traffic", CENTER, Car, "#2F6BFF", "Traffic easing", 11, "%", "-"),
+  mk("er", ctr(byKind("hospital")), HeartPulse, "#F45D6B", "ER capacity", 88, "%", ""),
+  mk("load", ctr(byKind("factory")), Factory, "#F6B73C", "Industrial load", 64, "%", ""),
+  mk("transit", METROP, TrainFront, "#775CFF", "Transit demand", 7, "%", "+"),
+  mk("air", RIVER, Wind, "#2FB36D", "Air quality", 36, " AQI", "-"),
+  mk("housing", ctr(byKind("apartment")), Building2, "#13C8C3", "Housing occupancy", 94, "%", ""),
+  mk("education", ctr(byKind("school")), GraduationCap, "#F6B73C", "Education uptake", 3, "%", "+"),
+  mk("grid", { x: CENTER.x - 120, y: CENTER.y + 80 }, Zap, "#34E5A0", "Grid uptime", 99.2, "%", "", 1),
   mk("policy", { x: CENTER.x + 120, y: CENTER.y - 70 }, Sparkles, "#9D7BFF", "Policy sim", 2.4, "% mobility", "+", 1),
 ];
 
