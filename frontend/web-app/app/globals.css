@@ -56,11 +56,11 @@
 
 @layer components {
   .glass-card {
-    @apply border border-white/75 bg-glass-sheen shadow-glass backdrop-blur-2xl transition-all duration-300;
+    @apply border border-border/70 bg-white/[0.96] shadow-polis-sm backdrop-blur-md transition-all duration-300;
   }
 
   .surface-card {
-    @apply border border-border/80 bg-white/[0.9] shadow-polis-sm backdrop-blur-xl transition-all duration-300;
+    @apply border border-border/80 bg-white shadow-polis-sm transition-all duration-300;
   }
 
   .city-map {

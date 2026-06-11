@@ -12,6 +12,18 @@ const mono = Geist_Mono({ subsets: ["latin"], variable: "--font-mono", display: 
 export const metadata: Metadata = {
   title: "PolisAI — AI Societal Digital Twin",
   description: "Test policy, governance, economics, climate, healthcare, mobility, and civic outcomes in a living simulated city.",
+  manifest: "/manifest.json",
+  themeColor: "#009E9D",
+  appleWebApp: {
+    capable: true,
+    title: "PolisAI",
+    statusBarStyle: "black-translucent",
+  },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    viewportFit: "cover",
+  },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {

@@ -1,0 +1,40 @@
+{
+  "name": "PolisAI — AI Societal Digital Twin",
+  "short_name": "PolisAI",
+  "description": "Test policy, governance, economics, climate, and civic outcomes in a living simulated city.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#101824",
+  "theme_color": "#009E9D",
+  "orientation": "landscape-primary",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "government", "utilities"],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "Open the simulation dashboard",
+      "url": "/dashboard"
+    },
+    {
+      "name": "Policies",
+      "short_name": "Policies",
+      "description": "Policy builder and simulator",
+      "url": "/policies"
+    }
+  ]
+}

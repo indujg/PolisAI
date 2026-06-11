@@ -13,7 +13,7 @@ const badgeVariants = cva(
         success: "border-city-park/20 bg-city-park/10 text-city-park",
         warning: "border-city-solar/25 bg-city-solar/[0.16] text-[#8A5A00]",
         danger: "border-city-coral/20 bg-city-coral/10 text-city-coral",
-        glass: "border-white/70 bg-white/60 text-foreground shadow-polis-xs backdrop-blur-xl"
+        glass: "border-border/60 bg-white/90 text-foreground shadow-polis-xs"
       }
     },
     defaultVariants: {
