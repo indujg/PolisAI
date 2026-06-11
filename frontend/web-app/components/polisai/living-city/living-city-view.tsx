@@ -88,6 +88,7 @@ import { useLiveSim } from "./live-sim";
 import { useLiveAnalytics } from "./live-analytics";
 import { useSim } from "@/lib/sim-context";
 import { listPolicies, simulatePolicy, getRecommendations } from "@/lib/polis-api";
+import { Markdown } from "@/components/polisai/markdown";
 import {
   CITY,
   iso,
@@ -2869,7 +2870,7 @@ function ScenarioReport({
             <Sparkles className="size-4 text-city-civic" />
             <p className="text-body-sm font-bold text-foreground">AI recommendation</p>
           </div>
-          <p className="text-body-sm leading-relaxed text-muted-foreground">{recommendation}</p>
+          <Markdown text={recommendation} className="text-body-sm leading-relaxed text-muted-foreground" />
         </div>
 
         {/* Real key insights from the backend impact model */}
