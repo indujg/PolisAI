@@ -27,13 +27,20 @@ export async function api<T = unknown>(path: string, init: RequestInit = {}): Pr
   });
   if (!res.ok) {
     const body = await res.json().catch(() => null);
-    // FastAPI 422 returns detail as an array of validation errors
-    const detail = body?.detail;
     let message: string;
+    // FastAPI 422 — detail is an array of validation errors
+    const detail = body?.detail;
     if (Array.isArray(detail)) {
       message = detail.map((e: { msg?: string }) => e.msg?.replace(/^Value error, /, "") ?? "").filter(Boolean).join("; ");
+    } else if (typeof detail === "string") {
+      message = detail;
+    } else if (body?.error?.message) {
+      // Custom error envelope: { error: { code, message } }
+      message = body.error.message;
+    } else if (body?.message) {
+      message = body.message;
     } else {
-      message = detail ?? `${res.status} ${res.statusText}`;
+      message = `${res.status} ${res.statusText}`;
     }
     throw new Error(message);
   }
